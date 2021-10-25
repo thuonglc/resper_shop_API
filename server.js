@@ -1,12 +1,11 @@
-import bodyParser from 'body-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import { createServer } from 'http';
 import JWT from 'jsonwebtoken';
 import moment from 'moment';
+import mongoose from 'mongoose';
 import morgan from 'morgan';
-import path from 'path';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
@@ -15,14 +14,13 @@ import Product from './models/productModel.js';
 import User from './models/userModel.js';
 import cartRoutes from './routes/cartRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
-import subRoutes from './routes/subRoutes.js';
-import couponRoutes from './routes/couponRoutes.js';
-import mongoose from 'mongoose';
+import cloudinaryRoutes from './routes/cloudinary.js';
 import commentRoutes from './routes/commentRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import subRoutes from './routes/subRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import cloudinaryRoutes from './routes/cloudinary.js';
 
 const app = express();
 const server = createServer(app);
@@ -44,26 +42,27 @@ const io = new Server(server, {
 });
 
 dotenv.config();
-connectDB();
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
 // app
-app.use(express.json());
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-app.use('/api', productRoutes);
-app.use('/api', commentRoutes);
-app.use('/api', userRoutes);
-app.use('/api', cartRoutes);
-app.use('/api', orderRoutes);
-app.use('/api', categoryRoutes);
-app.use('/api', subRoutes);
-app.use('/api', couponRoutes);
-app.use('/api', cloudinaryRoutes);
+app.use(express.json());
+
+// DATABASE CONNECTION
+connectDB();
+
+app.use('', productRoutes);
+app.use('', commentRoutes);
+app.use('', userRoutes);
+app.use('', cartRoutes);
+app.use('', orderRoutes);
+app.use('', categoryRoutes);
+app.use('', subRoutes);
+app.use('', couponRoutes);
+app.use('', cloudinaryRoutes);
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
