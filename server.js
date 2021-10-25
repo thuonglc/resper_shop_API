@@ -473,18 +473,6 @@ io.on('connection', function (socket) {
 
 app.get('/api/config/paypal', (req, res) => res.send(process.env.PAYPAL_CLIENT_ID));
 
-const __dirname = path.resolve();
-app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
-
-// ... other app.use middleware
-
-app.use(express.static(path.join(__dirname, 'frontend', 'build')));
-
-// Right before your app.listen(), add this:
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'build', 'index.html'));
-});
-
 app.use(notFound);
 app.use(errorHandler);
 
