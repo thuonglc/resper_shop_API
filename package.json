@@ -38,5 +38,6 @@
     "nodemon": "^2.0.6"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC" ,
+  "type": "module"
 }
