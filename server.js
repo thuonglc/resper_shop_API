@@ -54,15 +54,15 @@ app.use(express.json());
 // DATABASE CONNECTION
 connectDB();
 
-app.use('', productRoutes);
-app.use('', commentRoutes);
-app.use('', userRoutes);
-app.use('', cartRoutes);
-app.use('', orderRoutes);
-app.use('', categoryRoutes);
-app.use('', subRoutes);
-app.use('', couponRoutes);
-app.use('', cloudinaryRoutes);
+app.use('/api', productRoutes);
+app.use('/api', commentRoutes);
+app.use('/api', userRoutes);
+app.use('/api', cartRoutes);
+app.use('/api', orderRoutes);
+app.use('/api', categoryRoutes);
+app.use('/api', subRoutes);
+app.use('/api', couponRoutes);
+app.use('/api', cloudinaryRoutes);
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
