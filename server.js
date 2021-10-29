@@ -21,6 +21,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import subRoutes from './routes/subRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import paypal from '@paypal/checkout-server-sdk';
 
 const app = express();
 const server = createServer(app);
@@ -63,6 +64,16 @@ app.use('/api', categoryRoutes);
 app.use('/api', subRoutes);
 app.use('/api', couponRoutes);
 app.use('/api', cloudinaryRoutes);
+
+const Environment =
+  process.env.NODE_ENV === 'production'
+    ? paypal.core.LiveEnvironment
+    : paypal.core.SandboxEnvironment;
+const paypalClient = new paypal.core.PayPalHttpClient(
+  new Environment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET)
+);
+
+app.get('/api/config/paypal', (req, res) => res.send(process.env.PAYPAL_CLIENT_ID));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header(
@@ -469,8 +480,6 @@ io.on('connection', function (socket) {
     io.sockets.emit('severCountUserOnline', countUserOnline.length);
   });
 });
-
-app.get('/api/config/paypal', (req, res) => res.send(process.env.PAYPAL_CLIENT_ID));
 
 app.use(notFound);
 app.use(errorHandler);
