@@ -30,7 +30,8 @@ const server = createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.REACT_APP_API_URL,
+    origin:
+      process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : process.env.CLIENT_URL,
     methods: ['GET', 'POST', 'DELETE', 'PUT'],
     allowedHeaders: [
       'Access-Control-Allow-Origin',
