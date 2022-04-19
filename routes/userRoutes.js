@@ -37,6 +37,6 @@ router.route('/user/address').post(verifyAccessToken, saveAddress)
 router.route('/user/cart/coupon').post(verifyAccessToken, applyCoupon)
 router.route('/user/wishlist').post(verifyAccessToken, addToWishlist)
 router.route('/user/wishlist').get(verifyAccessToken, addToWishlist)
-router.route('/user/wishlist/:productId').put(verifyAccessToken, removeFromWishlist)
+router.route('/user/wishlist/:params').put(verifyAccessToken, removeFromWishlist)
 
 export default router

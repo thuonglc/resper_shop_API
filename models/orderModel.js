@@ -1,13 +1,11 @@
 import mongoose from 'mongoose'
 
-const { ObjectId } = mongoose.Schema
-
 const orderSchema = mongoose.Schema({
-	orderBy: { type: ObjectId, required: true, ref: 'User' },
+	orderBy: { type: mongoose.SchemaTypes.ObjectId, required: true, ref: 'User' },
 	products: [
 		{
 			product: {
-				type: ObjectId,
+				type: mongoose.SchemaTypes.ObjectId,
 				ref: 'Product',
 			},
 			quantity: Number,
@@ -16,7 +14,7 @@ const orderSchema = mongoose.Schema({
 	paymentMethod: {
 		type: String,
 		required: true,
-		default: 'paypal',
+		default: 'Paypal',
 	},
 	isPaid: { type: Boolean, required: true, default: false },
 	paidAt: { type: Date },
@@ -28,15 +26,7 @@ const orderSchema = mongoose.Schema({
 	feeDiscount: { type: Number, default: 0 },
 	orderStatus: {
 		type: String,
-		default: 'Not Processed',
-		enum: [
-			'Not Processed',
-			'Cash On Delivery',
-			'Processing',
-			'Dispatched',
-			'Cancelled',
-			'Completed',
-		],
+		default: 'Chưa thực hiện',
 	},
 	timeOrder: { type: String, required: true },
 	message: { type: String, default: '' },

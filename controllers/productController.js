@@ -212,6 +212,7 @@ const updateProduct = async (req, res) => {
 
 const listRelated = async (req, res) => {
 	try {
+		console.log(req.query)
 		const product = await Product.findById(req.query.id).exec()
 		const total = await Product.find({
 			_id: { $ne: product._id },
@@ -236,8 +237,10 @@ const listRelated = async (req, res) => {
 		).paginating()
 		const products = await features.query
 		res.json({
-			length: total.length,
-			data: products,
+			data: {
+				length: total.length,
+				data: products,
+			},
 		})
 	} catch (err) {
 		console.log(err)

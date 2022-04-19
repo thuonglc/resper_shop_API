@@ -21,7 +21,6 @@ import orderRoutes from './routes/orderRoutes.js'
 import productRoutes from './routes/productRoutes.js'
 import subRoutes from './routes/subRoutes.js'
 import userRoutes from './routes/userRoutes.js'
-import paypal from '@paypal/checkout-server-sdk'
 
 // App
 const app = express()
@@ -49,25 +48,6 @@ app.use('/api', couponRoutes)
 app.use('/api', cloudinaryRoutes)
 app.use(notFound)
 app.use(errorHandler)
-
-// Paypal
-const Environment =
-	process.env.NODE_ENV === 'production'
-		? paypal.core.LiveEnvironment
-		: paypal.core.SandboxEnvironment
-const paypalClient = new paypal.core.PayPalHttpClient(
-	new Environment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET)
-)
-app.get('/api/config/paypal', (req, res) => res.send(process.env.PAYPAL_CLIENT_ID))
-app.use((req, res, next) => {
-	res.header('Access-Control-Allow-Origin', '*')
-	res.header(
-		'Access-Control-Header',
-		'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-	)
-	res.header('Access-Control-Allow-Methods', 'PUT, POST, PUT, DELETE, GET')
-	next()
-})
 
 // SocketIO
 const io = new Server(server, {

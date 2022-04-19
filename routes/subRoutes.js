@@ -5,9 +5,9 @@ import { verifyAccessToken, verifyAdminRole } from '../utils/jwt_helpers.js'
 const router = express.Router()
 
 router.post('/sub', verifyAccessToken, verifyAdminRole, createSub)
-router.get('/subs', getSubs)
-router.get('/sub/:slug', readSub)
-router.put('/sub/:slug', verifyAccessToken, verifyAdminRole, updateSub)
-router.delete('/sub/:slug', verifyAccessToken, verifyAdminRole, deleteSub)
+router.get('/sub', getSubs)
+router.get('/sub/:id', readSub)
+router.patch('/sub/:id?', verifyAccessToken, verifyAdminRole, updateSub)
+router.delete('/sub/:id?', verifyAccessToken, verifyAdminRole, deleteSub)
 
 export default router

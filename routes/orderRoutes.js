@@ -17,7 +17,6 @@ router.get('/user/order/:id', verifyAccessToken, getOrderById)
 router.get('/user/orders', verifyAccessToken, getMyOrders)
 router.put('/user/order/:id/pay', verifyAccessToken, updateOrderToPaid)
 router.delete('/user/order/:slug', verifyAccessToken, deleteOrder)
-router.delete('/user/order/:slug', verifyAccessToken, deleteOrder)
 
 //admin
 router.get('/admin/orders', verifyAccessToken, verifyAdminRole, getAllOrders)

@@ -336,11 +336,11 @@ const applyCoupon = async (req, res) => {
 // wishlist
 
 const addToWishlist = async (req, res) => {
-	const { productId } = req.body
+	const { params } = req.body
 
 	const user = await User.findOneAndUpdate(
 		{ email: req.user.email },
-		{ $addToSet: { wishlist: productId } }
+		{ $addToSet: { wishlist: params } }
 	).exec()
 
 	res.json({ ok: true })
@@ -356,10 +356,10 @@ const wishlist = async (req, res) => {
 }
 
 const removeFromWishlist = async (req, res) => {
-	const { productId } = req.params
+	const { params } = req.params
 	const user = await User.findOneAndUpdate(
 		{ email: req.user.email },
-		{ $pull: { wishlist: productId } }
+		{ $pull: { wishlist: params } }
 	).exec()
 
 	res.json({ ok: true })

@@ -41,14 +41,14 @@ const getOrderById = async (req, res) => {
 	try {
 		const { id } = req.params
 		const order = await Order.findById(id)
-			.populate('user', 'name email')
+			// .populate('user', 'name email')
 			.populate('products.product', '_id name price priceCompare image subs')
 			.exec()
 		if (order) {
 			res.status(200).json(order)
 		}
 	} catch (error) {
-		res.send(createError(404, error))
+		console.log(error.message)
 	}
 }
 
@@ -79,22 +79,12 @@ const updateOrderToPaid = async (req, res) => {
 	try {
 		const timePayOrder = moment().format()
 		const { id } = req.params
-		console.log(req.body)
-		const order = await Order.findById(id)
-		console.log(order)
-		if (order) {
-			order.isPaid = true
-			order.paidAt = timePayOrder
-			order.orderStatus = 'Processing'
-			order.paymentResult = {
-				id: req.body.paymentResult.id,
-				status: req.body.paymentResult.status,
-				update_time: req.body.paymentResult.update_time,
-				email_address: req.body.paymentResult.payer.email_address,
-			}
-			const updatedOrder = await order.save()
-			res.status(200).json({ ok: true })
-		}
+		let updated = await Order.findByIdAndUpdate(
+			id,
+			{ isPaid: true, paidAt: timePayOrder, paymentResult: req.body.paymentResult },
+			{ new: true }
+		).exec()
+		res.status(200).json({ ok: true })
 	} catch (error) {
 		res.send(createError(404, error))
 	}

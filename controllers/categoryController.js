@@ -15,7 +15,7 @@ const getCategories = async (req, res) => {
 const createCategory = async (req, res) => {
 	try {
 		const { name } = req.body
-		const newCategory = await new Category({ name: name, slug: slugify(name) }).save()
+		const newCategory = await new Category({ name, slug: slugify(name) }).save()
 		res.json(newCategory)
 	} catch (err) {
 		res.status(400).send('Create category failed')
@@ -32,10 +32,10 @@ const readCategory = async (req, res) => {
 }
 
 const updateCategory = async (req, res) => {
-	const { nameEdit } = req.body
+	const { nameEdit, id } = req.body
 	try {
 		const updated = await Category.findOneAndUpdate(
-			{ slug: req.params.slug },
+			{ _id: id },
 			{ name: nameEdit, slug: slugify(nameEdit) },
 			{ new: true }
 		)
@@ -47,7 +47,7 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
 	try {
-		const deleted = await Category.findOneAndDelete({ slug: req.params.slug })
+		const deleted = await Category.findOneAndDelete({ _id: req.params.id })
 		res.json(deleted)
 	} catch (err) {
 		res.status(400).send('Category delete failed')

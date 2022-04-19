@@ -4,26 +4,6 @@ import Cart from '../models/cartModel.js'
 import User from '../models/userModel.js'
 import Product from '../models/productModel.js'
 
-class ApiFeatures {
-	constructor(query, queryString) {
-		this.query = query
-		this.queryString = queryString
-	}
-
-	sorting() {
-		this.query = this.query.sort('-timeCart')
-		return this
-	}
-
-	paginating() {
-		const page = this.queryString.page * 1 || 1
-		const limit = this.queryString.limit * 1 || 5
-		const skip = (page - 1) * limit
-		this.query = this.query.skip(skip).limit(limit)
-		return this
-	}
-}
-
 const userCart = async (req, res, next) => {
 	try {
 		const timeCart = moment().format()
@@ -36,7 +16,7 @@ const userCart = async (req, res, next) => {
 		// check if cart with logged-in user id already exist
 		let cartExistByThisUser = await Cart.findOne({ orderBy: user._id }).exec()
 		if (cartExistByThisUser) {
-			cartExistByThisUser.remove()
+			await cartExistByThisUser.remove()
 			console.log('removed old cart')
 		}
 		for (let i = 0; i < cart.length; i++) {
