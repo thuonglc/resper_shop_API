@@ -5,7 +5,7 @@ import Sub from '../models/subModel.js'
 
 const getCategories = async (req, res) => {
 	try {
-		const categories = await Category.find({})
+		const categories = await Category.find({}).sort({ createdAt: -1 })
 		res.json(categories)
 	} catch (err) {
 		return res.status(500).json({ msg: err.message })

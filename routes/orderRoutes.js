@@ -19,7 +19,7 @@ router.put('/user/order/:id/pay', verifyAccessToken, updateOrderToPaid)
 router.delete('/user/order/:slug', verifyAccessToken, deleteOrder)
 
 //admin
-router.get('/admin/orders', verifyAccessToken, verifyAdminRole, getAllOrders)
-router.put('/admin/order-status', verifyAccessToken, verifyAdminRole, updateOrderStatus)
+router.get('/admin/order', verifyAccessToken, verifyAdminRole, getAllOrders)
+router.put('/admin/order/:id?', verifyAccessToken, verifyAdminRole, updateOrderStatus)
 
 export default router

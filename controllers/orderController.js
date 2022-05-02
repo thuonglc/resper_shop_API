@@ -94,11 +94,11 @@ const updateOrderToPaid = async (req, res) => {
 const getAllOrders = async (req, res) => {
 	try {
 		const { page, limit } = req.query
-		const currentPage = page || 1
+		const currentPage = page || 0
 		const perPage = limit || 20
 		const orders = await Order.find({})
 			.sort('-createdAt')
-			.skip((currentPage - 1) * perPage)
+			.skip(currentPage * perPage)
 			.limit(Number(perPage))
 			.populate('products.product', '_id name image')
 			.exec()

@@ -40,9 +40,9 @@ class APIFeatures {
 	}
 
 	paginating() {
-		const page = this.queryString.page * 1 || 1
+		const page = this.queryString.page * 1 || 0
 		const limit = this.queryString.limit * 1 || 15
-		const skip = (page - 1) * limit
+		const skip = page * limit
 		this.query = this.query.skip(skip).limit(limit)
 		return this
 	}
@@ -78,6 +78,44 @@ const getProducts = async (req, res) => {
 					numReviews: 1,
 				}
 			),
+			req.query
+		)
+			.filtering()
+			.sorting()
+			.paginating()
+		const products = await features.query
+		let total = await Product.find({}).estimatedDocumentCount().exec()
+		res.json({
+			length: total,
+			data: products,
+		})
+	} catch (err) {
+		console.log(err)
+		return res.status(500).json({ msg: err.message })
+	}
+}
+
+// get all products for admin
+const getAllProducts = async (req, res) => {
+	try {
+		const features = new APIFeatures(
+			Product.find(
+				{},
+				{
+					name: 1,
+					image: { $slice: 1 },
+					price: 1,
+					priceCompare: 1,
+					rating: 1,
+					numReviews: 1,
+					category: 1,
+					quantity: 1,
+					subs: 1,
+					sold: 1,
+				}
+			)
+				.populate('category', '_id name')
+				.populate('subs', '_id name'),
 			req.query
 		)
 			.filtering()
@@ -381,6 +419,7 @@ const searchFilters = async (req, res) => {
 
 export {
 	getProducts,
+	getAllProducts,
 	createProduct,
 	readProduct,
 	productsCount,

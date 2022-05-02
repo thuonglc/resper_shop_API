@@ -3,6 +3,7 @@ import multer from 'multer'
 import {
 	createProduct,
 	deleteProduct,
+	getAllProducts,
 	getProducts,
 	listRelated,
 	productsCount,
@@ -29,10 +30,17 @@ let upload = multer({
 
 router.post('/product', upload.array('image'), verifyAccessToken, verifyAdminRole, createProduct)
 router.get('/products/total', productsCount)
-router.get('/products', getProducts)
+router.get('/product', getProducts)
+router.get('/admin/product', getAllProducts)
 router.get('/product/:id', readProduct)
-router.delete('/product/:id', verifyAccessToken, verifyAdminRole, deleteProduct)
-router.put('/product/:id', upload.array('image'), verifyAccessToken, verifyAdminRole, updateProduct)
+router.delete('/product/:id?', verifyAccessToken, verifyAdminRole, deleteProduct)
+router.patch(
+	'/product/:id?',
+	upload.array('image'),
+	verifyAccessToken,
+	verifyAdminRole,
+	updateProduct
+)
 
 // related
 router.get('/related', listRelated)
