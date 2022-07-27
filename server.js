@@ -52,8 +52,7 @@ app.use(errorHandler)
 // SocketIO
 const io = new Server(server, {
 	cors: {
-		origin:
-			process.env.NODE_ENV === 'development' ? 'http://localhost:3006' : process.env.CLIENT_URL,
+		origin: process.env.REACT_APP_API_URL,
 		methods: ['GET', 'POST', 'DELETE', 'PUT'],
 		allowedHeaders: [
 			'Access-Control-Allow-Origin',

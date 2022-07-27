@@ -9,8 +9,9 @@ import Comment from '../models/commentModel.js'
 import Coupon from '../models/couponModel.js'
 import User from '../models/userModel.js'
 import cloudinaryConfig from '../utils/cloudinary.js'
-import { signAccessToken, signRefreshToken } from '../utils/jwt_helpers.js'
+import { signAccessToken, signRefreshToken, verilyRefreshToken } from '../utils/jwt_helpers.js'
 import sendMail from './sendMail.js'
+import { APIFeatures } from '../utils/api_features.js'
 
 const { OAuth2 } = google.auth
 const { GOOGLE_LOGIN_SERVICE_CLIENT_ID, GOOGLE_LOGIN_SECRET, CLIENT_URL, ACTIVATION_TOKEN_SECRET } =
@@ -19,10 +20,10 @@ const { GOOGLE_LOGIN_SERVICE_CLIENT_ID, GOOGLE_LOGIN_SECRET, CLIENT_URL, ACTIVAT
 const client = new google.auth.OAuth2(GOOGLE_LOGIN_SERVICE_CLIENT_ID)
 
 const createAccessToken = (payload) => {
-	return jwt.sign(payload, ACTIVATION_TOKEN_SECRET, { expiresIn: '15m' })
+	return JWT.sign(payload, ACTIVATION_TOKEN_SECRET, { expiresIn: '15m' })
 }
 const createActivationToken = (payload) => {
-	return jwt.sign(payload, ACTIVATION_TOKEN_SECRET, { expiresIn: '5m' })
+	return JWT.sign(payload, ACTIVATION_TOKEN_SECRET, { expiresIn: '5m' })
 }
 
 const registerUser = async (req, res) => {
@@ -118,9 +119,7 @@ const getProfile = async (req, res) => {
 	try {
 		const user = await User.findById(req.data.id).select('-password')
 		if (!user) return res.status(400).json({ message: 'User does not exist.' })
-		res.status(200).json({
-			user: user,
-		})
+		res.status(200).json(user)
 	} catch (error) {
 		console.log(error)
 		res.status(400).json({
@@ -149,36 +148,40 @@ const updateUserImage = async (req, res) => {
 		const { id } = req.data
 		const options = { new: true }
 		const file = req.file
-		cloudinaryConfig.v2.uploader.upload(file.path, { folder: 'test' }, async (error, result) => {
-			if (result) {
-				const userSave = {
-					avatar: result.url,
-				}
-				const update = {
-					avatar: result.url,
-				}
-				const user = await User.findByIdAndUpdate(id, userSave, options)
-				const comment = await Comment.updateMany({ id_user: id }, update, options)
-				const dataReply = await Comment.find()
-				for (let index = 0; index < dataReply.length; index++) {
-					const reply = Array.from(dataReply[index].reply)
-					if (reply.length > 0) {
-						for (let j = 0; j < reply.length; j++) {
-							const element = reply[j]
-							if (element.id_user === id) {
-								element.avatar = result.url
-								const id_array = dataReply[index]._id
-								await Comment.findByIdAndUpdate(id_array, { reply: reply }, options)
+		await cloudinaryConfig.v2.uploader.upload(
+			file.path,
+			{ folder: 'test' },
+			async (error, result) => {
+				if (result) {
+					const userSave = {
+						avatar: result.url,
+					}
+					const update = {
+						avatar: result.url,
+					}
+					const user = await User.findByIdAndUpdate(id, userSave, options)
+					const comment = await Comment.updateMany({ id_user: id }, update, options)
+					const dataReply = await Comment.find()
+					for (let index = 0; index < dataReply.length; index++) {
+						const reply = Array.from(dataReply[index].reply)
+						if (reply.length > 0) {
+							for (let j = 0; j < reply.length; j++) {
+								const element = reply[j]
+								if (element.id_user === id) {
+									element.avatar = result.url
+									const id_array = dataReply[index]._id
+									await Comment.findByIdAndUpdate(id_array, { reply: reply }, options)
+								}
 							}
 						}
 					}
+					res.json({
+						user: user,
+						comment: comment,
+					})
 				}
-				res.json({
-					user: user,
-					comment: comment,
-				})
 			}
-		})
+		)
 	} catch (error) {
 		res.send(error)
 	}
@@ -186,22 +189,18 @@ const updateUserImage = async (req, res) => {
 
 const updateUserInfo = async (req, res) => {
 	try {
+		// req.body = {name, phone, gender, dob, address...}
 		const { id } = req.data
-		const { name, sex } = req.body
-		const options = { new: true }
-		const data = {
-			name: name,
-			sex: sex,
-		}
-		const user = await User.findByIdAndUpdate(id, data, options)
-		const comment = await Comment.updateMany({ id_user: id }, { name: name }, options)
+		const user = await User.findById(id).select('-password')
+		if (!user) return res.status(400).json({ message: 'User does not exist.' })
+		const updated = await User.findByIdAndUpdate(id, req.body, { new: true })
 		res.status(200).json({
-			status: 'Update success',
-			user: user,
-			comment: comment,
+			updated,
 		})
 	} catch (error) {
-		console.log('error', error)
+		res.status(400).json({
+			message: error,
+		})
 	}
 }
 
@@ -289,52 +288,75 @@ const resetPassword = async (req, res) => {
 	}
 }
 
-const saveAddress = async (req, res) => {
-	const { id } = req.data
-	const userArray = await User.find({ _id: id }).exec()
-	const user = userArray[0]
-	const userAddress = await User.findOneAndUpdate(
-		{ email: user.email },
-		{ address: req.body.address, paymentMethod: req.body.paymentMethod }
-	).exec()
+const getUserAddress = async (req, res) => {
+	try {
+		const user = await User.findOne({ _id: req.query.id }).exec()
+		res.status(200).json(user.address)
+	} catch (error) {
+		console.log(error)
+		res.status(400).json({
+			message: error,
+		})
+	}
+}
 
-	res.json({ ok: true })
+const saveAddress = async (req, res) => {
+	try {
+		const { id } = req.data
+		const user = await User.findOne({ _id: id }).exec()
+		const updated = await User.findOneAndUpdate({ email: user.email }, req.body, {
+			new: true,
+		}).exec()
+		res.status(200).json(updated.address)
+	} catch (error) {
+		console.log(error)
+		res.status(400).json({
+			message: error,
+		})
+	}
+}
+
+const savePaymentMethod = async (req, res) => {
+	try {
+		const { id } = req.data
+		const user = await User.findOne({ _id: id }).exec()
+		const updated = await User.findOneAndUpdate(
+			{ email: user.email },
+			{ paymentMethod: req.body.paymentMethod },
+			{ new: true }
+		).exec()
+		res.status(200).json(updated.paymentMethod)
+	} catch (error) {
+		console.log(error)
+		res.status(400).json({
+			message: error,
+		})
+	}
 }
 
 // coupon
 const applyCoupon = async (req, res) => {
 	const { coupon } = req.body
 	const validCoupon = await Coupon.findOne({ name: coupon }).exec()
-	console.log(validCoupon)
 	if (validCoupon === null || validCoupon.expiry < moment()) {
 		return res.json({
 			err: 'Invalid coupon',
 		})
 	}
-	console.log('VALID COUPON', validCoupon)
-
 	const { id } = req.data
 	const userArray = await User.find({ _id: id }).exec()
 	const user = userArray[0]
-
 	let { products, cartTotal } = await Cart.findOne({ orderBy: user._id })
 		.populate('products.product', '_id name price')
 		.exec()
-
-	console.log('cartTotal', cartTotal, 'discount%', validCoupon.discount)
-
 	// calculate the total after discount
 	let totalAfterDiscount = (cartTotal - (cartTotal * validCoupon.discount) / 100).toFixed(2) // 99.99
-
-	console.log('----------> ', totalAfterDiscount)
-
-	Cart.findOneAndUpdate({ orderBy: user._id }, { totalAfterDiscount }, { new: true }).exec()
+	await Cart.findOneAndUpdate({ orderBy: user._id }, { totalAfterDiscount }, { new: true }).exec()
 
 	res.json({ value: totalAfterDiscount })
 }
 
 // wishlist
-
 const addToWishlist = async (req, res) => {
 	const { params } = req.body
 
@@ -365,6 +387,17 @@ const removeFromWishlist = async (req, res) => {
 	res.json({ ok: true })
 }
 
+// admin
+const getAllUsers = async (req, res) => {
+	try {
+		const features = new APIFeatures(User.find({}), req.query).filtering().sorting().paginating()
+		const users = await features.query
+		res.json(users)
+	} catch (err) {
+		return res.status(500).json({ msg: err.message })
+	}
+}
+
 export {
 	loginByGoogle,
 	registerUser,
@@ -377,9 +410,12 @@ export {
 	activeEmail,
 	forgotPassword,
 	resetPassword,
+	getUserAddress,
 	saveAddress,
+	savePaymentMethod,
 	addToWishlist,
 	wishlist,
 	removeFromWishlist,
 	applyCoupon,
+	getAllUsers,
 }

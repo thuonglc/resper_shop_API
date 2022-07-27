@@ -1,12 +1,11 @@
 import mongoose from 'mongoose'
 
-const { ObjectId } = mongoose.Schema
 const cartScheme = mongoose.Schema({
-	orderBy: { type: ObjectId, ref: 'User' },
+	orderBy: { type: mongoose.SchemaTypes.ObjectId, ref: 'User' },
 	products: [
 		{
 			product: {
-				type: ObjectId,
+				type: mongoose.SchemaTypes.ObjectId,
 				ref: 'Product',
 			},
 			quantity: Number,

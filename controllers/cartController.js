@@ -4,7 +4,7 @@ import Cart from '../models/cartModel.js'
 import User from '../models/userModel.js'
 import Product from '../models/productModel.js'
 
-const userCart = async (req, res, next) => {
+const userCart = async (req, res) => {
 	try {
 		const timeCart = moment().format()
 		const { cart } = req.body

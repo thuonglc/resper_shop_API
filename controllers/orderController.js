@@ -5,10 +5,10 @@ import Order from '../models/orderModel.js'
 import Product from '../models/productModel.js'
 import User from '../models/userModel.js'
 
-const createOrder = async (req, res, next) => {
+const createOrder = async (req, res) => {
 	try {
 		const timeOrder = moment().format()
-		const { totalPayable, paymentMethod, feeDiscount } = req.body
+		const { totalPayable, paymentMethod, feeDiscount, delivery } = req.body
 		const { id } = req.data
 		const userArray = await User.find({ _id: id }).exec()
 		const user = userArray[0]
@@ -16,6 +16,7 @@ const createOrder = async (req, res, next) => {
 		let newOrder = await new Order({
 			timeOrder,
 			products,
+			delivery: delivery || user.address,
 			totalPayable,
 			paymentMethod,
 			feeDiscount,
@@ -56,12 +57,12 @@ const getMyOrders = async (req, res) => {
 	try {
 		const { id } = req.data
 		const { page, limit } = req.query
-		const currentPage = page || 1
+		const currentPage = page || 0
 		const perPage = limit || 20
 		const userArray = await User.find({ _id: id }).exec()
 		const user = userArray[0]
 		const orders = await Order.find({ orderBy: user._id })
-			.skip((currentPage - 1) * perPage)
+			.skip(currentPage * perPage)
 			.limit(Number(perPage))
 			.populate('products.product', '_id name image')
 			.exec()
@@ -113,12 +114,12 @@ const getAllOrders = async (req, res) => {
 }
 
 const updateOrderStatus = async (req, res) => {
-	const { orderId, orderStatus } = req.body.data
+	const { orderId, orderStatus } = req.body
 	let updated = await Order.findByIdAndUpdate(orderId, { orderStatus }, { new: true }).exec()
 	res.json(updated)
 }
 
-const deleteOrder = async (req, res, next) => {
+const deleteOrder = async (req, res) => {
 	try {
 		const { id_order } = req.query
 		const id_user = req.data.id

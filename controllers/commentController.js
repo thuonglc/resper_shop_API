@@ -102,7 +102,7 @@ const deleteIdComment = asyncHandler(async (req, res) => {
 	}
 })
 
-const historyComment = asyncHandler(async (req, res, next) => {
+const historyComment = asyncHandler(async (req, res) => {
 	try {
 		const page = parseInt(req.query.page) || 1
 		const item = parseInt(req.query.item) || 5

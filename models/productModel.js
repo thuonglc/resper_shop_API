@@ -1,24 +1,23 @@
 import mongoose from 'mongoose'
 
-const { ObjectId } = mongoose.Schema
 const productSchema = mongoose.Schema(
 	{
-		name: { type: String, required: true, trim: true, text: true },
+		name: { type: String, required: true, trim: true, text: true, index: true },
 		slug: {
 			type: String,
 			unique: true,
 			lowercase: true,
 			index: true,
 		},
-		description: { type: String, required: true, text: true },
+		description: { type: String, required: true, text: true, index: true },
 		price: { type: Number, trim: true, required: true, maxlength: 32 },
 		category: {
-			type: ObjectId,
+			type: mongoose.SchemaTypes.ObjectId,
 			ref: 'Category',
 		},
 		subs: [
 			{
-				type: ObjectId,
+				type: mongoose.SchemaTypes.ObjectId,
 				ref: 'Sub',
 			},
 		],
@@ -29,7 +28,6 @@ const productSchema = mongoose.Schema(
 		},
 		shipping: {
 			type: String,
-			enum: ['Yes', 'No'],
 		},
 		color: {
 			type: Array,
@@ -43,7 +41,7 @@ const productSchema = mongoose.Schema(
 		// required
 		priceCompare: { type: Number, required: true },
 		numReviews: { type: Number, default: 0 },
-		//not required
+		//not required || special attributes
 		//0. smartphone
 		type: { type: String, default: null },
 		sc: { type: String, default: null },

@@ -1,63 +1,9 @@
 import fs from 'fs'
 import slugify from 'slugify'
-import { uploads } from '../cloudinary.js'
+import queryString from 'query-string'
+import { removes, uploads } from '../cloudinary.js'
 import Product from '../models/productModel.js'
-
-// Filter, sorting and paginating
-class APIFeatures {
-	constructor(query, queryString) {
-		this.query = query
-		this.queryString = queryString
-	}
-
-	filtering() {
-		const queryObj = { ...this.queryString } //queryString = req.query
-
-		const excludedFields = ['page', 'sort', 'limit']
-		excludedFields.forEach((el) => delete queryObj[el])
-
-		let queryStr = JSON.stringify(queryObj)
-		queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in|regex)\b/g, (match) => '$' + match)
-
-		//    gte = greater than or equal
-		//    lte = less than or equal
-		//    lt = lesser than
-		//    gt = greater than
-		this.query.find(JSON.parse(queryStr))
-
-		return this
-	}
-
-	sorting() {
-		if (this.queryString.sort) {
-			const sortBy = this.queryString.sort.split(',').join(' ')
-			this.query = this.query.sort(sortBy)
-		} else {
-			this.query = this.query.sort('-createdAt')
-		}
-
-		return this
-	}
-
-	paginating() {
-		const page = this.queryString.page * 1 || 0
-		const limit = this.queryString.limit * 1 || 15
-		const skip = page * limit
-		this.query = this.query.skip(skip).limit(limit)
-		return this
-	}
-}
-
-class ApiFeatures {
-	constructor(query, queryString) {
-		this.query = query
-	}
-
-	sorting() {
-		this.query = this.query.sort('-createdAt')
-		return this
-	}
-}
+import { APIFeatures } from '../utils/api_features.js'
 
 const productsCount = async (req, res) => {
 	let total = await Product.find({}).estimatedDocumentCount().exec()
@@ -133,6 +79,15 @@ const getAllProducts = async (req, res) => {
 	}
 }
 
+// get product by admin
+const getProductByAdmin = async (req, res) => {
+	const product = await Product.findOne({ _id: req.params.id })
+		.populate('category', '_id name')
+		.populate('subs', '_id name')
+		.exec()
+	res.status(200).json(product)
+}
+
 const readProduct = async (req, res) => {
 	const id = req.params.id
 	const product = await Product.findOne({ _id: id })
@@ -146,30 +101,27 @@ const createProduct = async (req, res) => {
 	const files = req.files
 	try {
 		let urls = []
-		const uploader = async (path) => await uploads(path)
+		const uploader = async (path, folder) => await uploads(path, folder)
 		for (const file of files) {
 			const { path } = file
-			const newPath = await uploader(path)
+			const newPath = await uploader(path, 'shop_products')
 			urls.push(newPath)
 			fs.unlinkSync(path)
 		}
 		if (urls) {
 			const product = JSON.parse(req.body.product)
-			console.log(product)
-			const slug = slugify(product.name)
 			const newProduct = new Product({
-				slug,
+				slug: slugify(product.name),
 				image: urls,
 				...product,
 			})
 			const result = await newProduct.save()
 			res.status(200).json({
-				message: 'image upload successful',
 				product: result,
 			})
 		}
 		if (!urls) {
-			return res.status(400).json({ message: 'create failed' })
+			return res.status(400).json({ message: 'Create failed' })
 		}
 	} catch (err) {
 		console.log(err)
@@ -180,71 +132,64 @@ const createProduct = async (req, res) => {
 const deleteProduct = async (req, res) => {
 	try {
 		const { id } = req.params
-		console.log(req.params)
-		const product = await Product.find({ _id: id }).exec()
-		const { image } = product[0]
+		const product = await Product.find({ _id: id })
 		// remove image on cloudinary
-		removeItemI(image)
+		if (product) {
+			const { image } = product[0]
+			for (let i = 0; i < image.length; i++) {
+				await removes(image[i].id)
+			}
+		}
 		const deleted = await Product.findOneAndRemove({ _id: id }).exec()
 		res.json({ message: 'delete successful', deleted })
 	} catch (err) {
-		console.log(err)
 		return res.status(400).send('Product delete failed')
 	}
 }
 
+const removeImg = async (req, res) => {
+	const { id, imgId } = req.body
+	const product = await Product.find({ _id: id })
+	const rmImg = await removes(imgId)
+	if (rmImg.result === 'ok') {
+		const { image } = product[0]
+		const newImgList = image.filter((i) => i.id !== imgId)
+		const updated = await Product.findByIdAndUpdate(id, { image: newImgList }, { new: true }).exec()
+		res.status(200).json(updated)
+	} else res.status(400).send('Failed')
+}
+
 const updateProduct = async (req, res) => {
-	//the files different original images
-	const files = req.files
 	try {
+		const { id } = req.params
+		const files = req.files
 		const product = JSON.parse(req.body.product)
-		const {
-			name,
-			description,
-			price,
-			priceCompare,
-			shipping,
-			quantity,
-			category,
-			subs,
-			imageOld,
-			id_product,
-		} = product
-		let urls = []
+		let newUrl = []
+		const oldProduct = await Product.findById({ _id: id }).exec()
+		const { image } = oldProduct
+		const uploader = async (path, folder) => await uploads(path, folder)
 		if (files.length > 0) {
-			const uploader = async (path) => await uploads(path)
 			for (const file of files) {
 				const { path } = file
-				const newPath = await uploader(path)
-				urls.push(newPath)
+				const newPath = await uploader(path, 'shop_products')
+				newUrl.push(newPath)
 				fs.unlinkSync(path)
 			}
-			const newIArray = [...imageOld, ...urls]
-			if (!urls) {
-				//upload images to cloudinary failed
-				return res.status(400).json({ message: 'Update failed' })
+			if (!newUrl) {
+				// upload images to cloudinary failed
+				return res.status(400).json({ message: 'Upload image failed' })
 			}
-			const slug = slugify(name)
-			const updated = {
-				name: name.trim(),
-				description: description.trim(),
-				price,
-				slug,
-				priceCompare,
-				shipping,
-				quantity,
-				category,
-				subs,
-				image: urls.length > 0 ? newIArray : imageOld,
-			}
-			const result = await Product.findByIdAndUpdate(id_product, updated, { new: true }).exec()
-			res.status(200).json({
-				message: 'Update successful',
-				product: result,
-			})
 		}
+		const newIArray = [...image, ...newUrl]
+		const updated = {
+			slug: slugify(product.name),
+			image: newUrl.length > 0 ? newIArray : image,
+			...product,
+		}
+		const result = await Product.findByIdAndUpdate(id, updated, { new: true }).exec()
+		res.status(200).json(result)
 	} catch (err) {
-		return res.status(400).send('Product update failed')
+		return res.status(400).json('Product update failed')
 	}
 }
 
@@ -287,7 +232,6 @@ const listRelated = async (req, res) => {
 }
 
 const handleQuery = async (req, res, query) => {
-	console.log('quer', query)
 	const { page, limit, sort } = req.query
 	const currentPage = page || 1
 	const perPage = limit || 20
@@ -316,104 +260,133 @@ const handleQuery = async (req, res, query) => {
 	})
 }
 
-const searchFilters = async (req, res) => {
-	console.log(req.query)
+const stringToArrayRange = (string) => {
+	return string.split(/\s*%\s*/)
+}
+
+const stringToArray = (string) => {
+	if (typeof string === 'string') {
+		return (string = string.split())
+	}
+	return string
+}
+
+const searchFilters = async (req, response) => {
+	console.log('query', req.query)
+	const { page, limit, sort } = req.query
+	const currentPage = page || 0
+	const perPage = limit || 20
 	try {
-		const { query, price, star } = req.query
-		if (query) {
-			console.log('query --->', query)
-			await handleQuery(req, res, query)
-		} else if (price?.length > 0) {
-			const queryExcludePrice = {
-				...req.query,
-				price: {
-					gte: price[0],
-					lte: price[1],
-				},
-			}
-			const features = new APIFeatures(
-				Product.find(
-					{},
-					{
-						name: 1,
-						image: { $slice: 1 },
-						price: 1,
-						priceCompare: 1,
-						rating: 1,
-						numReviews: 1,
-					}
-				),
-				queryExcludePrice
-			)
-				.filtering()
-				.sorting()
-				.paginating()
-			const products = await features.query
-			res.json({
-				length: products.length,
-				data: products,
-			})
-		} else if (star?.length > 0) {
-			const queryExcludeStar = {
-				...req.query,
-				star: {
-					gte: star[0],
-					lte: star[1],
-				},
-			}
-			console.log('queryExcludeStar --->', queryExcludeStar)
-			const features = new APIFeatures(
-				Product.find(
-					{},
-					{
-						name: 1,
-						image: { $slice: 1 },
-						price: 1,
-						priceCompare: 1,
-						rating: 1,
-						numReviews: 1,
-					}
-				),
-				queryExcludeStar
-			)
-				.filtering()
-				.sorting()
-				.paginating()
-			const products = await features.query
-			res.json({
-				length: products.length,
-				data: products,
-			})
-		} else {
-			const features = new APIFeatures(
-				Product.find(
-					{},
-					{
-						name: 1,
-						image: { $slice: 1 },
-						price: 1,
-						priceCompare: 1,
-						rating: 1,
-						numReviews: 1,
-					}
-				),
-				req.query
-			)
-				.filtering()
-				.sorting()
-				.paginating()
-			const products = await features.query
-			const featureLength = new APIFeatures(Product.find({}), req.query).filtering().sorting()
-			const productLength = await featureLength.query
-			const length = productLength.length
-			res.json({
-				length: length,
-				data: products,
-			})
+		const {
+			category,
+			sort,
+			query,
+			price,
+			subs,
+			rating,
+			color,
+			sex,
+			type,
+			sc,
+			ram,
+			rom,
+			res,
+			cpu,
+			pin,
+			face,
+		} = req.query
+
+		const maxPrice = 999000000
+		const minRating = 0
+		const searchQuery = query ? { query: query.toLowerCase() } : { query: undefined }
+		const priceRange = price
+			? {
+					price: {
+						$gt: Number(stringToArrayRange(price)[0]),
+						$lt: Number(stringToArrayRange(price)[1]),
+					},
+			  }
+			: { price: undefined }
+		const ratingRange = rating
+			? { rating: { $gte: Number(stringToArrayRange(rating)[0]) } }
+			: { rating: undefined }
+		const subsArray = subs ? { subs: { $in: stringToArray(subs) } } : { subs: undefined }
+		const colorArray = color ? { color: { $in: stringToArray(color) } } : { color: undefined }
+		const sexArray = sex ? { sex: { $in: stringToArray(sex) } } : { sex: undefined }
+		const typeArray = type ? { type: { $in: stringToArray(type) } } : { type: undefined }
+		const scArray = sc ? { sc: { $in: stringToArray(sc) } } : { sc: undefined }
+		const ramArray = ram ? { ram: { $in: stringToArray(ram) } } : { ram: undefined }
+		const romArray = rom ? { rom: { $in: stringToArray(rom) } } : { rom: undefined }
+		const resArray = res ? { res: { $in: stringToArray(res) } } : { res: undefined }
+		const cpuArray = cpu ? { cpu: { $in: stringToArray(cpu) } } : { cpu: undefined }
+		const pinArray = pin ? { pin: { $in: stringToArray(pin) } } : { pin: undefined }
+		const faceArray = face ? { face: { $in: stringToArray(face) } } : { face: undefined }
+
+		const filterArray = {
+			...req.query,
+			subs: subsArray.subs,
+			price: priceRange.price,
+			rating: ratingRange.rating,
+			color: colorArray.color,
+			sex: sexArray.sex,
+			type: typeArray.type,
+			sc: scArray.sc,
+			ram: ramArray.ram,
+			rom: romArray.rom,
+			res: resArray.res,
+			cpu: cpuArray.cpu,
+			pin: pinArray.pin,
+			face: faceArray.face,
 		}
+
+		Object.keys(filterArray).forEach((key) => {
+			if (filterArray[key] === undefined) {
+				delete filterArray[key]
+			}
+		})
+		let products = []
+		let total = 0
+		if (searchQuery.query) {
+			total = await Product.find({
+				$and: [{ $text: { $search: `\"${searchQuery.query}\"` } }, filterArray],
+			}).count()
+
+			products = await Product.find(
+				{
+					$and: [{ $text: { $search: `\"${searchQuery.query}\"` } }, filterArray],
+				},
+				{
+					name: 1,
+					image: { $slice: 1 },
+					price: 1,
+					priceCompare: 1,
+					rating: 1,
+					numReviews: 1,
+				}
+			)
+				.skip(currentPage * perPage)
+				.limit(Number(perPage))
+				.sort(sort)
+		} else {
+			total = await Product.find(filterArray).count()
+
+			products = await Product.find(filterArray, {
+				name: 1,
+				image: { $slice: 1 },
+				price: 1,
+				priceCompare: 1,
+				rating: 1,
+				numReviews: 1,
+			})
+				.skip(currentPage * perPage)
+				.limit(Number(perPage))
+				.sort(sort)
+		}
+
+		return response.status(200).json({ data: products, total })
 	} catch (err) {
 		console.log(err)
-		return res.status(500).json({ msg: err.message })
+		return response.status(500).json({ msg: err.message })
 	}
 }
 
@@ -422,8 +395,10 @@ export {
 	getAllProducts,
 	createProduct,
 	readProduct,
+	getProductByAdmin,
 	productsCount,
 	deleteProduct,
+	removeImg,
 	updateProduct,
 	listRelated,
 	searchFilters,

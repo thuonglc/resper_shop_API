@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 
 const orderSchema = mongoose.Schema({
 	orderBy: { type: mongoose.SchemaTypes.ObjectId, required: true, ref: 'User' },
+	delivery: [],
 	products: [
 		{
 			product: {

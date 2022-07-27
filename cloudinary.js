@@ -1,7 +1,6 @@
 import cloudinary from 'cloudinary'
 
-//call from product controller, backend
-const uploads = (file) => {
+const uploads = (file, folder) => {
 	cloudinary.config({
 		cloud_name: process.env.CLOUD_NAME,
 		api_key: process.env.CLOUDINARY_API_KEY,
@@ -13,7 +12,7 @@ const uploads = (file) => {
 			file,
 			{
 				resource_type: 'auto',
-				upload_preset: 'shop_products', // name folder that configured on cloudinary
+				upload_preset: folder, // name folder that configured on cloudinary
 			},
 			(err, res) => {
 				if (err) {
@@ -29,17 +28,20 @@ const uploads = (file) => {
 	})
 }
 
-// direct call from client
-const removes = (req, res) => {
+const removes = (public_id) => {
 	cloudinary.config({
 		cloud_name: process.env.CLOUD_NAME,
 		api_key: process.env.CLOUDINARY_API_KEY,
 		api_secret: process.env.CLOUDINARY_API_SECRET,
 	})
-	let image_id = req.body.public_id
-	cloudinary.uploader.destroy(image_id, (err, result) => {
-		if (err) return res.json({ message: 'failed', err })
-		res.send('ok')
+
+	return new Promise((resolve, reject) => {
+		cloudinary.v2.uploader.destroy(public_id, undefined, (err, res) => {
+			if (err) return reject(err)
+			else {
+				return resolve(res)
+			}
+		})
 	})
 }
 

@@ -55,7 +55,7 @@ const deleteCategory = async (req, res) => {
 }
 
 const getCategorySubs = async (req, res) => {
-	let subs = await Sub.find({ parent: req.params._id }).exec()
+	let subs = await Sub.find({ parent: req.params.id }).exec()
 	res.json(subs)
 }
 

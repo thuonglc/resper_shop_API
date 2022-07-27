@@ -13,7 +13,7 @@ const router = express.Router()
 
 router.get('/category', getCategories)
 router.get('/category/:id', readCategory)
-router.get('/category/subs/:id', getCategorySubs)
+router.get('/category/subs/:id?', getCategorySubs)
 router.post('/category', verifyAccessToken, verifyAdminRole, createCategory)
 router.patch('/category/:id?', verifyAccessToken, verifyAdminRole, updateCategory)
 router.delete('/category/:id?', verifyAccessToken, verifyAdminRole, deleteCategory)

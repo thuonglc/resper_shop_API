@@ -2,8 +2,6 @@ import bcrypt from 'bcryptjs'
 import moment from 'moment'
 import mongoose from 'mongoose'
 
-const { ObjectId } = mongoose.Schema
-
 const createdAt = moment().format()
 
 const userSchema = mongoose.Schema(
@@ -21,6 +19,16 @@ const userSchema = mongoose.Schema(
 			type: String,
 			required: true,
 		},
+		phone: {
+			type: String,
+		},
+		gender: {
+			type: String,
+			enum: ['Nam', 'Nữ', 'Khác'],
+		},
+		dob: {
+			type: String,
+		},
 		role: {
 			type: Number,
 			default: 0,
@@ -34,21 +42,13 @@ const userSchema = mongoose.Schema(
 			type: String,
 			default: createdAt,
 		},
-		cart: {
-			type: Array,
-			default: [],
-		},
-		address: {
-			type: String,
-			default: '',
-		},
+		address: {},
 		paymentMethod: {
 			type: String,
 			default: '',
 		},
-		wishlist: [{ type: ObjectId, ref: 'Product' }],
+		wishlist: [{ type: mongoose.SchemaTypes.ObjectId, ref: 'Product' }],
 	},
-
 	{
 		timestamps: true,
 	}
