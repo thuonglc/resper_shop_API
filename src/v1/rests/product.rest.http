@@ -1,0 +1,28 @@
+@baseUrl = http://localhost:5000/v1/api
+
+### products count
+
+GET {{baseUrl}}/products/total
+Content-Type: application/json
+
+### get products
+
+GET {{baseUrl}}/product
+Content-Type: application/json
+
+### get product detail
+
+GET {{baseUrl}}/product/6145a1145291b905c5458be3
+Content-Type: application/json
+
+### get relate products 
+
+GET {{baseUrl}}/related?id=6145a1145291b905c5458be3
+Content-Type: application/json
+
+### search
+
+GET {{baseUrl}}/search
+Content-Type: application/json
+
+### admin section
